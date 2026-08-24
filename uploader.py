@@ -1,68 +1,88 @@
 import os
-import requests
+import logging
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters
-import internetarchive as ia
+from internetarchive import upload, get_item
 
-# आपकी टोकन और आर्काइव की डिटेल्स सीधे यहाँ सेट हैं
-TELEGRAM_BOT_TOKEN = os.environ.get("BOT_TOKEN")
-ARCHIVE_ACCESS_KEY = os.environ.get("ACCESS_KEY")
-ARCHIVE_SECRET_KEY = os.environ.get("SECRET_KEY")
+# Logging setup
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
+)
+logger = logging.getLogger(__name__)
+
+# Environment variables from Render
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+ACCESS_KEY = os.getenv("ACCESS_KEY")
+SECRET_KEY = os.getenv("SECRET_KEY")
 
 async def handle_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.message
+    file = message.video or message.document
     
-    # चेक करें कि वीडियो या डॉक्यूमेंट भेजा गया है या नहीं
-    file_obj = message.video or message.document
-    if not file_obj:
-        await message.reply_text("❌ कृपया कोई वैध वीडियो फाइल (Video या Document) भेजें!")
+    if not file:
+        await message.reply_text("कृपया कोई वीडियो या डॉक्यूमेंट फाइल भेजें।")
         return
 
-    status_msg = await message.reply_text("📥 वीडियो डाउनलोड हो रहा है, कृपया इंतज़ार करें...")
+    sent_msg = await message.reply_text("📥 फाइल डाउनलोड हो रही है, कृपया प्रतीक्षा करें...")
     
-    # टेलीग्राम से फाइल डाउनलोड करना
-    file = await context.bot.get_file(file_obj.file_id)
-    file_name = file_obj.file_name if hasattr(file_obj, 'file_name') and file_obj.file_name else "movie.mp4"
-    
-    local_path = f"./{file_name}"
-    await file.download_to_drive(local_path)
-    
-    await status_msg.edit_text("🚀 वीडियो Archive.org पर अपलोड हो रहा है...")
-
-    # Archive.org पर अपलोड करने की प्रक्रिया
-    identifier = f"movieadda-{file_obj.file_id[-10:]}"
-    config = {
-        's3': {
-            'access': ARCHIVE_ACCESS_KEY,
-            'secret': ARCHIVE_SECRET_KEY
-        }
-    }
-
     try:
-        ia.upload(
-            identifier,
+        # Telegram से फाइल डाउनलोड करना
+        new_file = await context.bot.get_file(file.file_id)
+        file_name = file.file_name or "uploaded_video.mp4"
+        local_path = f"/tmp/{file_name}"
+        
+        await new_file.download_to_drive(local_path)
+        
+        await sent_msg.edit_text("☁️ Internet Archive पर अपलोड किया जा रहा है...")
+        
+        # Internet Archive पर अपलोड करने की डिटेल्स
+        identifier = f"telegram_bot_upload_{file.file_id[-10:]}"
+        meta = {
+            'mediatype': 'movies',
+            'collection': 'opensource_movies',
+            'title': file_name
+        }
+        
+        # Archive पर अपलोड करना
+        upload(
+            identifier=identifier,
             files=[local_path],
-            metadata={'mediatype': 'movies', 'title': file_name},
-            config=config
+            metadata=meta,
+            access_key=ACCESS_KEY,
+            secret_key=SECRET_KEY
         )
         
-        # परमानेंट लिंक तैयार करना
-        permanent_link = f"https://archive.org/download/{identifier}/{file_name}"
-        await status_msg.edit_text(f"✅ **सफलतापूर्वक अपलोड हो गया!**\n\n🔗 **Permanent Link:**\n{permanent_link}")
+        # डाउनलोड लिंक तैयार करना
+        download_url = f"https://archive.org/download/{identifier}/{file_name}"
         
-    except Exception as e:
-        await status_msg.edit_text(f"❌ अपलोड करने में त्रुटि आई: {str(e)}")
+        await sent_msg.edit_text(
+            f"✅ **अपलोड सफल रहा!**\n\n"
+            f"📁 **फाइल नाम:** {file_name}\n"
+            f"🔗 **डाउनलोड लिंक:**\n{download_url}",
+            parse_mode="Markdown"
+        )
         
-    finally:
-        # फोन/सर्वर से लोकल फाइल हटाना ताकि स्पेस फुल न हो
+        # लोकल स्टोरेज से फाइल हटाना
         if os.path.exists(local_path):
             os.remove(local_path)
+            
+    except Exception as e:
+        logger.error(f"Error: {e}")
+        await sent_msg.edit_text(f"❌ अपलोड करने में विफल रहा!\nएरर: {str(e)}")
 
 def main():
-    app = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
-    app.add_handler(MessageHandler(filters.VIDEO | filters.DOCUMENT, handle_video))
-    print("🤖 Uploader Bot सफलतापूर्वक शुरू हो गया है...")
+    if not BOT_TOKEN:
+        print("Error: BOT_TOKEN environment variable is missing!")
+        return
+
+    # Telegram Bot एप्लीकेशन शुरू करना
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
+
+    # वीडियो और डॉक्यूमेंट हैंडल करने के लिए सही फिल्टर्स
+    app.add_handler(MessageHandler(filters.Video.ALL | filters.Document.ALL, handle_video))
+
+    print("🤖 बोट शुरू हो गया है और काम कर रहा है...")
     app.run_polling()
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
