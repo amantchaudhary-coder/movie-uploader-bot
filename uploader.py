@@ -55,11 +55,11 @@ async def handle_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # डाउनलोड लिंक तैयार करना
         download_url = f"https://archive.org/download/{identifier}/{file_name}"
         
+        # यहाँ parse_mode हटा दिया गया है ताकि 'Can't parse entities' एरर न आए
         await sent_msg.edit_text(
-            f"✅ **अपलोड सफल रहा!**\n\n"
-            f"📁 **फाइल नाम:** {file_name}\n"
-            f"🔗 **डाउनलोड लिंक:**\n{download_url}",
-            parse_mode="Markdown"
+            f"✅ अपलोड सफल रहा!\n\n"
+            f"📁 फाइल नाम: {file_name}\n"
+            f"🔗 डाउनलोड लिंक:\n{download_url}"
         )
         
         # लोकल स्टोरेज से फाइल हटाना
@@ -68,6 +68,7 @@ async def handle_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
     except Exception as e:
         logger.error(f"Error: {e}")
+        # यहाँ भी प्लेन टेक्स्ट का उपयोग किया गया है
         await sent_msg.edit_text(f"❌ अपलोड करने में विफल रहा!\nएरर: {str(e)}")
 
 def main():
@@ -78,7 +79,7 @@ def main():
     # Telegram Bot एप्लीकेशन शुरू करना
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
-    # सही फ़िल्टर का उपयोग (यहाँ एरर ठीक कर दी गई है)
+    # सही फ़िल्टर का उपयोग
     app.add_handler(MessageHandler(filters.VIDEO | filters.Document.MimeType("video/"), handle_video))
 
     print("🤖 बोट शुरू हो गया है और काम कर रहा है...")
