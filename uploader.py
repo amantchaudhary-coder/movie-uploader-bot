@@ -5,9 +5,9 @@ from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filte
 import internetarchive as ia
 
 # आपकी टोकन और आर्काइव की डिटेल्स सीधे यहाँ सेट हैं
-TELEGRAM_BOT_TOKEN = "8676204797:AAEzPVqITSjc9lmnYAAuv6pUbqizFItqSBU"
-ARCHIVE_ACCESS_KEY = "KvcILvM4cZ3la8pz"
-ARCHIVE_SECRET_KEY = "4XM7X7iKW7Cnk0V9"
+TELEGRAM_BOT_TOKEN = os.environ.get("BOT_TOKEN")
+ARCHIVE_ACCESS_KEY = os.environ.get("ACCESS_KEY")
+ARCHIVE_SECRET_KEY = os.environ.get("SECRET_KEY")
 
 async def handle_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.message
