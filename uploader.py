@@ -4,10 +4,10 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters
 import internetarchive as ia
 
-# आपके बोट और आर्काइव की जानकारी
-TELEGRAM_BOT_TOKEN = os.environ.get("BOT_TOKEN")
-ARCHIVE_ACCESS_KEY = os.environ.get("ACCESS_KEY")
-ARCHIVE_SECRET_KEY = os.environ.get("SECRET_KEY")
+# आपकी टोकन और आर्काइव की डिटेल्स सीधे यहाँ सेट हैं
+TELEGRAM_BOT_TOKEN = "8676204797:AAEzPVqITSjc9lmnYAAuv6pUbqizFItqSBU"
+ARCHIVE_ACCESS_KEY = "KvcILvM4cZ3la8pz"
+ARCHIVE_SECRET_KEY = "4XM7X7iKW7Cnk0V9"
 
 async def handle_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.message
@@ -59,9 +59,6 @@ async def handle_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
             os.remove(local_path)
 
 def main():
-    if not TELEGRAM_BOT_TOKEN:
-        print("Error: BOT_TOKEN नहीं मिला!")
-        return
     app = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
     app.add_handler(MessageHandler(filters.VIDEO | filters.DOCUMENT, handle_video))
     print("🤖 Uploader Bot सफलतापूर्वक शुरू हो गया है...")
