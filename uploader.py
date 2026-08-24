@@ -20,23 +20,24 @@ async def handle_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
     file = message.video or message.document
     
     if not file:
-        await message.reply_text("कृपया कोई वीडियो या डॉक्यूमेंट फाइल भेजें।")
+        await message.reply_text("कृपया कोई वीडियो या मूवी फाइल भेजें।")
         return
 
-    sent_msg = await message.reply_text("📥 फाइल डाउनलोड हो रही है, कृपया प्रतीक्षा करें...")
+    # असली फाइल का नाम और साइज पता करना
+    file_name = getattr(file, 'file_name', None) or f"movie_{file.file_id[-6:]}.mp4"
+    local_path = f"/tmp/{file_name}"
+
+    sent_msg = await message.reply_text(f"📥 बड़ी फाइल डाउनलोड हो रही है ({file_name}), कृपया प्रतीक्षा करें...")
     
     try:
         # Telegram से फाइल डाउनलोड करना
         new_file = await context.bot.get_file(file.file_id)
-        file_name = file.file_name or "uploaded_video.mp4"
-        local_path = f"/tmp/{file_name}"
-        
         await new_file.download_to_drive(local_path)
         
-        await sent_msg.edit_text("☁️ Internet Archive पर अपलोड किया जा रहा है...")
+        await sent_msg.edit_text(f"☁️ Internet Archive पर अपलोड किया जा रहा है...\n📁 {file_name}")
         
-        # Internet Archive पर अपलोड करने की डिटेल्स
-        identifier = f"telegram_bot_upload_{file.file_id[-10:]}"
+        # Internet Archive के लिए यूनिक आइडेंटिफायर
+        identifier = f"telegram_movie_{file.file_id[-10:]}"
         meta = {
             'mediatype': 'movies',
             'collection': 'opensource_movies',
@@ -55,21 +56,21 @@ async def handle_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # डाउनलोड लिंक तैयार करना
         download_url = f"https://archive.org/download/{identifier}/{file_name}"
         
-        # यहाँ parse_mode हटा दिया गया है ताकि 'Can't parse entities' एरर न आए
+        # सफलता का मैसेज भेजना
         await sent_msg.edit_text(
-            f"✅ अपलोड सफल रहा!\n\n"
+            f"✅ मूवी अपलोड सफल रही!\n\n"
             f"📁 फाइल नाम: {file_name}\n"
             f"🔗 डाउनलोड लिंक:\n{download_url}"
         )
         
-        # लोकल स्टोरेज से फाइल हटाना
-        if os.path.exists(local_path):
-            os.remove(local_path)
-            
     except Exception as e:
         logger.error(f"Error: {e}")
-        # यहाँ भी प्लेन टेक्स्ट का उपयोग किया गया है
         await sent_msg.edit_text(f"❌ अपलोड करने में विफल रहा!\nएरर: {str(e)}")
+        
+    finally:
+        # काम खत्म होने के बाद लोकल स्टोरेज से फाइल हटाना ताकि स्पेस खाली रहे
+        if os.path.exists(local_path):
+            os.remove(local_path)
 
 def main():
     if not BOT_TOKEN:
@@ -79,10 +80,10 @@ def main():
     # Telegram Bot एप्लीकेशन शुरू करना
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
-    # सही फ़िल्टर का उपयोग
-    app.add_handler(MessageHandler(filters.VIDEO | filters.Document.MimeType("video/"), handle_video))
+    # वीडियो और डॉक्यूमेंट (सभी प्रकार की मूवी फाइलों) के लिए फ़िल्टर
+    app.add_handler(MessageHandler(filters.VIDEO | filters.Document.ALL, handle_video))
 
-    print("🤖 बोट शुरू हो गया है और काम कर रहा है...")
+    print("🤖 मूवी अपलोडर बोट शुरू हो गया है...")
     app.run_polling()
 
 if __name__ == "__main__":
