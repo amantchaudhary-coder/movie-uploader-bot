@@ -1,4 +1,4 @@
-import os
+    import os
 import logging
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters
@@ -78,8 +78,8 @@ def main():
     # Telegram Bot एप्लीकेशन शुरू करना
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
-    # वीडियो और डॉक्यूमेंट हैंडल करने के लिए सही फिल्टर्स
-    app.add_handler(MessageHandler(filters.Video.ALL | filters.Document.ALL, handle_video))
+    # यहाँ अब सही बड़े अक्षरों वाले फिल्टर्स का इस्तेमाल किया गया है
+    app.add_handler(MessageHandler(filters.VIDEO | filters.DOCUMENT, handle_video))
 
     print("🤖 बोट शुरू हो गया है और काम कर रहा है...")
     app.run_polling()
