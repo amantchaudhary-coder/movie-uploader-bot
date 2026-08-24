@@ -2,7 +2,7 @@ import os
 import logging
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters
-from internetarchive import upload, get_item
+from internetarchive import upload
 
 # Logging setup
 logging.basicConfig(
@@ -78,8 +78,8 @@ def main():
     # Telegram Bot एप्लीकेशन शुरू करना
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
-    # यहाँ फिल्टर्स को सही रूप में अपडेट किया गया है
-    app.add_handler(MessageHandler(filters.VIDEO | filters.Document.ALL, handle_video))
+    # सही फ़िल्टर का उपयोग (यहाँ एरर ठीक कर दी गई है)
+    app.add_handler(MessageHandler(filters.VIDEO | filters.Document.MimeType("video/"), handle_video))
 
     print("🤖 बोट शुरू हो गया है और काम कर रहा है...")
     app.run_polling()
